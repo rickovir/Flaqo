@@ -904,6 +904,22 @@ address is unknown or the password is wrong.
 -   Do not expose Supabase service-role keys to the dashboard or SDK.
 -   Keep business logic portable to standard PostgreSQL.
 
+**Runtime role privileges.** The runtime role may `USAGE` the schema and
+perform `SELECT`, `INSERT`, `UPDATE`, and `DELETE` on tables, and
+`USAGE`/`SELECT` on sequences. It must **not** have `CREATE` on the
+schema, and it must not own any application table. A test asserts that
+the runtime role cannot create a schema or a table.
+
+**Migration role privileges.** The migration role owns the schema and
+creates tables. Because it is the role that creates objects, default
+privileges granting the runtime role access to those objects must be
+declared `FOR ROLE <migration role>`. Declaring them under another role
+has no effect on objects the migration role creates.
+
+See `docs/IMPLEMENTATION_PLAN.md` §7.2 for the concrete setup used on
+Supabase, including the schema-ownership step that Supabase's default
+`public` schema ownership otherwise prevents.
+
 ## 11. Supabase PostgreSQL usage
 
 Use Supabase as managed PostgreSQL only: - Go connects through `pgx`. -

@@ -302,51 +302,106 @@ with placeholders.
 
 The development project is `toctqvfglwuvvnovkmsc`.
 
-**Verified at design time.** The project is provisioned and reachable:
+**Verified.** The project is provisioned and reachable:
 `db.toctqvfglwuvvnovkmsc.supabase.co` and
 `aws-0-toctqvfglwuvvnovkmsc.pooler.supabase.com` both resolve, TCP
 port 5432 on the direct host accepts connections, and the project's API
 tier responds with `401 Invalid API key` (expected without a key). The
-project is therefore neither paused nor deleted.
+project is neither paused nor deleted.
 
-**Not verified.** The current database schema contents and whether any
-migrations have already been applied. Confirm this before writing the
-first migration, because applying migrations to a database that already
-has a conflicting schema requires a decision.
+The database was inspected directly. It is **empty**: no tables in
+`public`, no `schema_migrations` table, and no migrations previously
+applied. `pgcrypto` is already installed, so `gen_random_uuid()` is
+available without a separate extension step. The server is PostgreSQL
+17.12 with `max_connections = 60`.
 
-**Credentials required before M1 can proceed.** These are held in the
-Supabase dashboard and must never be committed to this repository:
+### 7.2 Database roles
 
--   The database password, for `DATABASE_URL` and
-    `MIGRATION_DATABASE_URL`.
--   The project region, to choose the correct pooler host. The pooler
-    hostname embeds the region, so the connection string must use the
-    region shown in the dashboard rather than a guessed host.
--   A scoped Management API token, if the Supabase MCP server is to be
-    used for schema inspection. The MCP server is configured
-    `read_only=true` and requires an interactive OAuth login; it cannot
-    create schemas or apply migrations either way.
+Two roles exist, created and verified against the development project.
+The runtime role is used by the API; the migration role owns the schema.
 
-**Creating the database roles.** The runtime and migration roles do not
-exist yet and must be created in the Supabase SQL editor before the
-first migration runs:
+| Role | Purpose | Privileges |
+| ---- | ------- | ---------- |
+| `ff_migrator` | Migrations | Owns schema `public`; `CREATE` on the database |
+| `ff_runtime` | Application runtime | `USAGE` on `public`; DML on tables and sequences. **No `CREATE`.** |
+
+`ff_runtime` deliberately cannot create a schema or a table. A test
+asserts this.
+
+The setup required two non-obvious steps, because Supabase restricts the
+`public` schema and default privileges:
+
+1. **The `public` schema must be reassigned to `ff_migrator`.** Supabase
+   assigns `public` to `pg_database_owner`, which leaves the migration
+   role unable to create tables. Ownership transfer requires the
+   executing role to be a member of the target role:
+
+   ``` sql
+   GRANT ff_migrator TO postgres;
+   ALTER SCHEMA public OWNER TO ff_migrator;
+   ```
+
+2. **Default privileges must be set `FOR ROLE ff_migrator`.** Setting
+   them as `postgres` has no effect, because `ff_migrator` is the role
+   that actually creates the tables:
+
+   ``` sql
+   ALTER DEFAULT PRIVILEGES FOR ROLE ff_migrator IN SCHEMA public
+     GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO ff_runtime;
+   ALTER DEFAULT PRIVILEGES FOR ROLE ff_migrator IN SCHEMA public
+     GRANT USAGE, SELECT ON SEQUENCES TO ff_runtime;
+   ```
+
+Without step 2, migrations create tables that `ff_runtime` cannot read.
+
+The full applied setup is:
 
 ``` sql
--- Migration role: owns the schema.
+CREATE ROLE ff_runtime LOGIN PASSWORD '<generated>';
 CREATE ROLE ff_migrator LOGIN PASSWORD '<generated>';
+
+GRANT ff_migrator TO postgres;
+GRANT CONNECT ON DATABASE postgres TO ff_runtime, ff_migrator;
 GRANT ALL ON DATABASE postgres TO ff_migrator;
 
--- Runtime role: DML only, no schema modification.
-CREATE ROLE ff_runtime LOGIN PASSWORD '<generated>';
-GRANT CONNECT ON DATABASE postgres TO ff_runtime;
-GRANT USAGE, SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ff_runtime;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO ff_runtime;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
+ALTER SCHEMA public OWNER TO ff_migrator;
+GRANT ALL ON SCHEMA public TO ff_migrator;
+
+GRANT USAGE ON SCHEMA public TO ff_runtime;
+REVOKE CREATE ON SCHEMA public FROM ff_runtime;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE ff_migrator IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO ff_runtime;
+ALTER DEFAULT PRIVILEGES FOR ROLE ff_migrator IN SCHEMA public
   GRANT USAGE, SELECT ON SEQUENCES TO ff_runtime;
 ```
 
-`ff_runtime` deliberately receives no `CREATE` on the schema. A test
-asserts that the runtime role cannot create a schema.
+Role passwords are generated and stored only in the local, gitignored
+`.env`. They are never committed. The runtime role password does not
+need to be known to anyone but the developer running the API.
+
+### 7.3 Connection strings
+
+`.env` holds both connection strings:
+
+``` dotenv
+DATABASE_URL=postgresql://ff_runtime:<pw>@db.toctqvfglwuvvnovkmsc.supabase.co:5432/postgres?sslmode=require
+MIGRATION_DATABASE_URL=postgresql://ff_migrator:<pw>@db.toctqvfglwuvvnovkmsc.supabase.co:5432/postgres?sslmode=require
+```
+
+The direct IPv6 host was confirmed reachable from the development
+machine. If the deployment host has no IPv6 route, switch to the
+region-specific pooler host shown in the Supabase dashboard's connection
+string dropdown. The pooler hostname embeds the region, so it must be
+copied verbatim rather than constructed by hand.
+
+### 7.4 Optional: Supabase MCP access
+
+The Supabase MCP server is configured `read_only=true` and requires an
+interactive OAuth login. It is useful for read-only schema inspection
+and documentation, but it **cannot** create schemas or apply
+migrations. Schema changes always go through `golang-migrate` over the
+`MIGRATION_DATABASE_URL` connection.
 
 Do not expose database URLs, password hashes, session secrets, or server
 SDK keys to Next.js public environment variables.
