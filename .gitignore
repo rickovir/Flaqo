@@ -1,5 +1,8 @@
 # ---- Local Claude configuration and secrets (from .gitignore.append) ----
 .claude/settings.local.json
+# Local Claude Code settings, including machine-specific credentials.
+# Untracked on purpose: this file holds per-machine tokens.
+.claude/settings.json
 .env
 .env.*
 !.env.example
