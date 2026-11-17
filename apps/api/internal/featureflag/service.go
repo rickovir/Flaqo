@@ -114,7 +114,7 @@ func (s *Service) List(ctx context.Context, ownerID, projectID, envID uuid.UUID)
 	}
 
 	rows, err := s.pool.Query(ctx, `
-		SELECT f.key, COALESCE(st.enabled, false)
+		SELECT f.id, f.key, COALESCE(st.enabled, false)
 		FROM feature_flags f
 		LEFT JOIN feature_flag_states st
 			ON st.flag_id = f.id AND st.environment_id = $2
@@ -129,7 +129,7 @@ func (s *Service) List(ctx context.Context, ownerID, projectID, envID uuid.UUID)
 	out := []domain.FlagValue{}
 	for rows.Next() {
 		var fv domain.FlagValue
-		if err := rows.Scan(&fv.Key, &fv.Enabled); err != nil {
+		if err := rows.Scan(&fv.ID, &fv.Key, &fv.Enabled); err != nil {
 			return nil, fmt.Errorf("scan flag: %w", err)
 		}
 		out = append(out, fv)

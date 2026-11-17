@@ -141,6 +141,28 @@ func (s *Server) handleReadyz(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, response)
 }
 
+// csrfCookieName is the name of the readable cookie holding the CSRF
+// token.
+const csrfCookieName = "ff_csrf"
+
+// csrfCookie builds the readable CSRF token cookie.
+//
+// It is deliberately not HttpOnly: the dashboard's own JavaScript must
+// read it to send it in the X-CSRF-Token header. It is bound to the
+// session, so a third-party site that could read it still cannot use it
+// without the session cookie.
+func (s *Server) csrfCookie(token string, expiresAt time.Time) *http.Cookie {
+	return &http.Cookie{
+		Name:     csrfCookieName,
+		Value:    token,
+		Path:     "/",
+		Expires:  expiresAt,
+		HttpOnly: false,
+		Secure:   s.cfg.CookieSecure,
+		SameSite: http.SameSiteLaxMode,
+	}
+}
+
 // sessionCookie builds the session cookie.
 func (s *Server) sessionCookie(rawToken string, expiresAt time.Time) *http.Cookie {
 	return &http.Cookie{
@@ -149,6 +171,19 @@ func (s *Server) sessionCookie(rawToken string, expiresAt time.Time) *http.Cooki
 		Path:     "/",
 		Expires:  expiresAt,
 		HttpOnly: true,
+		Secure:   s.cfg.CookieSecure,
+		SameSite: http.SameSiteLaxMode,
+	}
+}
+
+// clearCsrfCookie builds a cookie that removes the CSRF token cookie.
+func (s *Server) clearCsrfCookie() *http.Cookie {
+	return &http.Cookie{
+		Name:     csrfCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: false,
 		Secure:   s.cfg.CookieSecure,
 		SameSite: http.SameSiteLaxMode,
 	}

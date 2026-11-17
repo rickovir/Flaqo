@@ -108,8 +108,12 @@ type SDKKeyScope struct {
 	KeyType       SDKKeyType
 }
 
-// FlagValue is a flag key and its Boolean value.
+// FlagValue is a flag and its Boolean value in one environment.
+//
+// The ID is included so a caller can address the flag directly, for
+// example to change its state.
 type FlagValue struct {
+	ID      uuid.UUID
 	Key     string
 	Enabled bool
 }

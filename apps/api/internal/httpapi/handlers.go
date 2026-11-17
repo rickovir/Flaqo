@@ -41,6 +41,11 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, s.sessionCookie(result.RawToken, result.Session.ExpiresAt))
+	// The CSRF token is issued as a readable cookie so the browser can
+	// recover it after a page reload and send it in the X-CSRF-Token
+	// header. It is not a credential: it is useless without the session
+	// cookie, and it grants no access on its own.
+	http.SetCookie(w, s.csrfCookie(result.CSRFToken, result.Session.ExpiresAt))
 	writeJSON(w, http.StatusOK, loginResponse{
 		UserID:    result.Session.UserID,
 		Email:     result.Session.Email,
@@ -59,13 +64,15 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	http.SetCookie(w, s.clearSessionCookie())
+	http.SetCookie(w, s.clearCsrfCookie())
 	writeJSON(w, http.StatusOK, map[string]string{"status": "signed out"})
 }
 
 // handleMe returns the current administrator.
 //
 // The CSRF token is returned so the dashboard can perform state-changing
-// requests after a page reload.
+// requests after a page reload. The token is also issued as a readable
+// cookie at login, so the browser can recover it without a round trip.
 func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	session, ok := SessionFrom(r.Context())
 	if !ok {
@@ -74,7 +81,7 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	csrfToken := ""
-	if cookie, err := r.Cookie("ff_csrf"); err == nil {
+	if cookie, err := r.Cookie(csrfCookieName); err == nil {
 		csrfToken = cookie.Value
 	}
 
@@ -325,7 +332,11 @@ func (s *Server) handleListFlags(w http.ResponseWriter, r *http.Request) {
 
 	out := make([]map[string]any, 0, len(values))
 	for _, v := range values {
-		out = append(out, map[string]any{"key": v.Key, "enabled": v.Enabled})
+		out = append(out, map[string]any{
+			"id":      v.ID,
+			"key":     v.Key,
+			"enabled": v.Enabled,
+		})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"flags": out})
 }

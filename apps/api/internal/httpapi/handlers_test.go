@@ -44,6 +44,8 @@ type testEnv struct {
 	pool     *pgxpool.Pool
 	email    string
 	password string
+	// csrfCookie is the readable CSRF cookie returned by the last login.
+	csrfCookie *http.Cookie
 }
 
 // newTestEnv starts a server backed by an isolated schema.
@@ -154,6 +156,15 @@ func (e *testEnv) login(t *testing.T) (*http.Cookie, string) {
 	if sessionCookie == nil {
 		t.Fatal("login did not set a session cookie")
 	}
+
+	// Keep the CSRF cookie so a test can inspect it.
+	e.csrfCookie = nil
+	for _, c := range resp.Cookies() {
+		if c.Name == "ff_csrf" {
+			e.csrfCookie = c
+		}
+	}
+
 	return sessionCookie, payload.CSRFToken
 }
 
@@ -181,6 +192,12 @@ func (e *testEnv) do(t *testing.T, method, path string, cookie *http.Cookie, csr
 	}
 	if cookie != nil {
 		req.AddCookie(cookie)
+	}
+	// A browser sends both cookies on every request. The CSRF cookie is
+	// readable by the dashboard's own JavaScript, which is how the token
+	// is recovered after a page reload.
+	if e.csrfCookie != nil {
+		req.AddCookie(e.csrfCookie)
 	}
 	if csrfToken != "" {
 		req.Header.Set("X-CSRF-Token", csrfToken)
@@ -469,4 +486,56 @@ type publisherFunc func(envID uuid.UUID, version int64)
 
 func (f publisherFunc) Publish(envID uuid.UUID, version int64) {
 	f(envID, version)
+}
+
+// TestCSRFTokenSurvivesReload covers the session restore path.
+//
+// The dashboard needs a CSRF token after a page reload, so the token
+// must be recoverable from the browser without the raw session token.
+func TestCSRFTokenSurvivesReload(t *testing.T) {
+	e := newTestEnv(t)
+	cookie, csrf := e.login(t)
+
+	if csrf == "" {
+		t.Fatal("login returned no CSRF token")
+	}
+
+	// The token must be issued as a readable cookie.
+	if e.csrfCookie == nil {
+		t.Fatal("login did not set a CSRF cookie")
+	}
+	if e.csrfCookie.HttpOnly {
+		t.Error("the CSRF cookie is HttpOnly, so the dashboard cannot read it")
+	}
+	if e.csrfCookie.Value != csrf {
+		t.Errorf("the CSRF cookie does not match the returned token")
+	}
+
+	// The session cookie must remain HttpOnly.
+	if !cookie.HttpOnly {
+		t.Error("the session cookie is not HttpOnly")
+	}
+
+	// After a reload, auth/me must return the token so the dashboard can
+	// make state-changing requests again.
+	resp := e.do(t, http.MethodGet, "/api/v1/auth/me", cookie, "", nil)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("auth/me status = %d, want 200", resp.StatusCode)
+	}
+
+	var payload struct {
+		CSRFToken string `json:"csrf_token"`
+		Email     string `json:"email"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if payload.CSRFToken == "" {
+		t.Error("auth/me returned no CSRF token, so the dashboard cannot act after a reload")
+	}
+	if payload.CSRFToken != csrf {
+		t.Error("auth/me returned a different CSRF token than the one issued at login")
+	}
 }

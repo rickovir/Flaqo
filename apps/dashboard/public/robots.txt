@@ -1,0 +1,4 @@
+# The dashboard is an internal administration tool and should not be
+# indexed.
+User-agent: *
+Disallow: /
