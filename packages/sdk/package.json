@@ -27,7 +27,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "manual": "node test/manual.mjs"
   },
   "devDependencies": {
     "@types/node": "26.6.6",
