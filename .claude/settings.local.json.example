@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go test *)",
+      "Bash(go vet *)",
+      "Bash(gofmt *)",
+      "Bash(golangci-lint run*)",
+      "Bash(sqlc generate)",
+      "Bash(npm test*)",
+      "Bash(npm run lint*)",
+      "Bash(npm run build*)",
+      "Bash(npx playwright test*)"
+    ]
+  }
+}
