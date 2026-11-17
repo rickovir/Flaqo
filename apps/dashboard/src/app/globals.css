@@ -1,32 +1,76 @@
 /* ==========================================================================
    Design tokens
 
-   Values come from docs/DESIGN.md section 2. They are exposed as custom
-   properties so every component reads from one place.
+   Values come from docs/DESIGN.md section 2, recoloured to the Flaqo
+   brand palette. The brand colours were sampled from the supplied logo
+   artwork rather than chosen by eye:
+
+     wordmark navy     #060E28   from the "Flaqo" lettering
+     flag deep blue    #1D1EAA   from the flagpole
+     flag mid indigo   #3F39D6   from the flag body
+     flag indigo       #5A4CEE   from the flag body
+     flag lilac        #7C7DFB   from the top highlight of the flag
+
+   Everything is exposed as custom properties so every component reads
+   from one place.
    ========================================================================== */
 
 :root {
+  /* Brand */
+  --brand-navy: #060e28;
+  --brand-deep: #1d1eaa;
+  --brand-mid: #3f39d6;
+  --brand-primary: #5a4cee;
+  --brand-primary-hover: #4a3cd6;
+  --brand-lilac: #7c7dfb;
+
+  /* The mark's gradient, reused for the brand mark and the accent. */
+  --brand-gradient: linear-gradient(
+    135deg,
+    #7c7dfb 0%,
+    #5a4cee 42%,
+    #3f39d6 72%,
+    #1d1eaa 100%
+  );
+  --brand-gradient-soft: linear-gradient(
+    135deg,
+    rgb(124 125 251 / 0.14) 0%,
+    rgb(90 76 238 / 0.08) 100%
+  );
+
   /* Color */
-  --background: #f8fafc;
+  --background: #f7f8fc;
   --surface: #ffffff;
-  --surface-muted: #f1f5f9;
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --text-primary: #0f172a;
-  --text-secondary: #64748b;
-  --text-muted: #94a3b8;
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
-  --success: #16a34a;
-  --success-surface: #f0fdf4;
-  --success-border: #bbf7d0;
-  --danger: #dc2626;
-  --danger-hover: #b91c1c;
-  --danger-surface: #fef2f2;
-  --danger-border: #fecaca;
-  --warning: #d97706;
-  --warning-surface: #fffbeb;
-  --warning-border: #fde68a;
+  --surface-muted: #f2f4fa;
+  --surface-sunken: #eef1f8;
+  --primary: #5a4cee;
+  --primary-hover: #4a3cd6;
+  --primary-subtle: #eeecfd;
+  --primary-subtle-border: #d9d5fb;
+  --text-primary: #060e28;
+  --text-secondary: #5b6480;
+  --text-muted: #8b93aa;
+  --border: #e4e7f0;
+  --border-strong: #c9cee0;
+  --success: #12855c;
+  --success-surface: #e9f8f1;
+  --success-border: #b3e6cd;
+  --danger: #d02638;
+  --danger-hover: #b01f2f;
+  --danger-surface: #fdeef0;
+  --danger-border: #f7c6cd;
+  --warning: #b45309;
+  --warning-surface: #fff6e9;
+  --warning-border: #f5d9a8;
+
+  /* Elevation */
+  --shadow-xs: 0 1px 2px rgb(6 14 40 / 0.05);
+  --shadow-sm: 0 1px 3px rgb(6 14 40 / 0.07), 0 1px 2px rgb(6 14 40 / 0.04);
+  --shadow-md: 0 6px 16px -4px rgb(6 14 40 / 0.12),
+    0 2px 6px -2px rgb(6 14 40 / 0.06);
+  --shadow-lg: 0 20px 44px -12px rgb(6 14 40 / 0.22),
+    0 6px 16px -6px rgb(6 14 40 / 0.1);
+  --ring-brand: 0 0 0 3px rgb(90 76 238 / 0.16);
 
   /* Typography */
   --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
@@ -34,7 +78,7 @@
   --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono",
     Menlo, monospace;
 
-  --text-page-title: 26px;
+  --text-page-title: 27px;
   --text-section-title: 17px;
   --text-card-title: 15px;
   --text-body: 14px;
@@ -46,22 +90,24 @@
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
+  --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
   --space-12: 48px;
 
   /* Shape */
-  --radius-control: 6px;
-  --radius-card: 10px;
-  --radius-dialog: 14px;
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-dialog: 16px;
+  --radius-pill: 999px;
 
   /* Motion */
-  --transition: 120ms ease;
+  --transition: 140ms cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Layout */
-  --sidebar-width: 240px;
+  --sidebar-width: 244px;
   --sidebar-collapsed-width: 68px;
-  --content-max: 1120px;
+  --content-max: 1160px;
 }
 
 /* ==========================================================================
@@ -97,11 +143,13 @@ h4 {
 
 h1 {
   font-size: var(--text-page-title);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
 }
 
 h2 {
   font-size: var(--text-section-title);
+  letter-spacing: -0.01em;
 }
 
 h3 {
@@ -123,9 +171,15 @@ code,
   font-size: var(--text-metadata);
 }
 
+::selection {
+  background: rgb(90 76 238 / 0.18);
+  color: var(--text-primary);
+}
+
 :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+  border-radius: 3px;
 }
 
 /* ==========================================================================
@@ -135,6 +189,7 @@ code,
 .app {
   display: flex;
   min-height: 100vh;
+  background: var(--background);
 }
 
 .sidebar {
@@ -152,33 +207,48 @@ code,
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   padding: var(--space-4) var(--space-4);
   border-bottom: 1px solid var(--border);
-  font-weight: 600;
-  font-size: var(--text-body);
-  color: var(--text-primary);
+  color: var(--brand-navy);
 }
 
 .sidebar-brand:hover {
-  color: var(--text-primary);
+  color: var(--brand-navy);
 }
 
+/* The Flaqo mark. The supplied artwork already carries the brand
+   gradient, so it is used as is: no tile, no background.
+   Both axes are set so the optimiser keeps the aspect ratio. */
+/* The mark artwork is 283x260, so the width follows the height
+   exactly and the artwork is never distorted. */
 .brand-mark {
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-control);
-  background: var(--primary);
-  color: #ffffff;
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  font-weight: 700;
+  height: 26px;
+  width: 28.3px;
+  display: block;
   flex-shrink: 0;
 }
 
+/* The wordmark is artwork, so it is sized by height and width and
+   allowed to keep its own aspect ratio. */
+.brand-wordmark-image {
+  height: 20px;
+  width: 55px;
+  display: block;
+}
+
+.login-brand .brand-mark {
+  height: 32px;
+  width: 34.8px;
+}
+
+.login-brand .brand-wordmark-image {
+  height: 24px;
+  width: 66px;
+}
+
 .sidebar-nav {
-  padding: var(--space-4) var(--space-2);
+  padding: var(--space-4) var(--space-3);
   flex: 1;
   overflow-y: auto;
 }
@@ -188,23 +258,26 @@ code,
 }
 
 .nav-section-label {
-  font-size: var(--text-metadata);
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
-  padding: 0 var(--space-2) var(--space-2);
+  padding: 0 var(--space-3) var(--space-2);
 }
 
 .nav-link {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-2);
+  gap: var(--space-3);
+  padding: 9px var(--space-3);
   border-radius: var(--radius-control);
   color: var(--text-secondary);
   font-size: var(--text-body);
+  font-weight: 500;
   margin-bottom: 2px;
+  transition: background var(--transition), color var(--transition);
 }
 
 .nav-link:hover {
@@ -212,10 +285,24 @@ code,
   color: var(--text-primary);
 }
 
+/* The active item gets a brand-tinted surface and a left accent bar,
+   so the state reads without relying on colour alone. */
 .nav-link[aria-current="page"] {
-  background: var(--surface-muted);
-  color: var(--text-primary);
-  font-weight: 500;
+  background: var(--primary-subtle);
+  color: var(--primary-hover);
+  font-weight: 600;
+}
+
+.nav-link[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  border-radius: 0 3px 3px 0;
+  background: var(--primary);
 }
 
 .nav-link[aria-current="page"] .nav-icon {
@@ -226,10 +313,15 @@ code,
   width: 16px;
   color: var(--text-muted);
   flex-shrink: 0;
+  transition: color var(--transition);
+}
+
+.nav-link:hover .nav-icon {
+  color: var(--text-secondary);
 }
 
 .sidebar-footer {
-  padding: var(--space-3) var(--space-2);
+  padding: var(--space-3);
   border-top: 1px solid var(--border);
   /* The account menu is positioned against this element, so it needs to
      be the containing block. Without it the menu anchors to the
@@ -242,27 +334,36 @@ code,
 .account-menu {
   position: absolute;
   bottom: calc(100% - var(--space-1));
-  left: var(--space-2);
-  right: var(--space-2);
+  left: var(--space-3);
+  right: var(--space-3);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  box-shadow: 0 6px 18px rgb(15 23 42 / 0.12);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-lg);
   padding: var(--space-1);
   z-index: 20;
+  animation: menu-in 120ms ease;
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
 
 .account {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   width: 100%;
-  padding: var(--space-2);
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-control);
   background: none;
   border: none;
   cursor: pointer;
   text-align: left;
+  transition: background var(--transition);
 }
 
 .account:hover {
@@ -270,17 +371,17 @@ code,
 }
 
 .account-avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--surface-muted);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-gradient);
+  color: #ffffff;
   display: grid;
   place-items: center;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   flex-shrink: 0;
+  letter-spacing: 0.02em;
 }
 
 .account-text {
@@ -290,15 +391,22 @@ code,
 
 .account-email {
   font-size: var(--text-supporting);
+  font-weight: 500;
   color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.account-action {
-  font-size: var(--text-metadata);
-  color: var(--text-muted);
+/* The chevron rotates when the menu is open, so the state is visible
+   without relying on the menu itself. */
+.account .nav-icon {
+  width: 14px;
+  transition: transform var(--transition);
+}
+
+.account[aria-expanded="true"] .nav-icon {
+  transform: rotate(180deg);
 }
 
 .content {
@@ -312,7 +420,7 @@ code,
   width: 100%;
   max-width: var(--content-max);
   margin: 0 auto;
-  padding: var(--space-8) var(--space-6) var(--space-12);
+  padding: var(--space-8) var(--space-8) var(--space-12);
 }
 
 /* ==========================================================================
@@ -365,7 +473,8 @@ code,
 .page-description {
   color: var(--text-secondary);
   font-size: var(--text-body);
-  margin-top: var(--space-1);
+  margin-top: var(--space-2);
+  line-height: 1.55;
 }
 
 .page-actions {
@@ -383,6 +492,7 @@ code,
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .card-header {
@@ -390,13 +500,15 @@ code,
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-4);
+  padding: var(--space-4) var(--space-4);
   border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgb(242 244 250 / 0.55), transparent);
 }
 
 .card-title {
   font-size: var(--text-card-title);
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .card-body {
@@ -416,7 +528,7 @@ code,
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: 8px 14px;
+  padding: 9px 15px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-control);
   background: var(--surface);
@@ -427,33 +539,44 @@ code,
   line-height: 20px;
   cursor: pointer;
   transition: background var(--transition), border-color var(--transition),
-    color var(--transition);
+    color var(--transition), box-shadow var(--transition),
+    transform var(--transition);
   white-space: nowrap;
+  box-shadow: var(--shadow-xs);
 }
 
 .btn:hover:not(:disabled) {
   background: var(--surface-muted);
+  border-color: var(--border-strong);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
 }
 
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .btn-primary {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: var(--brand-gradient);
+  border-color: transparent;
   color: #ffffff;
+  box-shadow: 0 2px 8px rgb(63 57 214 / 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--primary-hover);
-  border-color: var(--primary-hover);
+  background: linear-gradient(135deg, #6f70f7 0%, #5044e0 45%, #3f39d6 100%);
+  border-color: transparent;
 }
 
 .btn-danger {
   color: var(--danger);
   border-color: var(--border-strong);
+  background: var(--surface);
 }
 
 .btn-danger:hover:not(:disabled) {
@@ -466,6 +589,7 @@ code,
   border-color: transparent;
   background: transparent;
   color: var(--text-secondary);
+  box-shadow: none;
 }
 
 .btn-ghost:hover:not(:disabled) {
@@ -474,18 +598,19 @@ code,
 }
 
 .btn-sm {
-  padding: 4px 10px;
+  padding: 5px 11px;
   font-size: var(--text-supporting);
   line-height: 18px;
 }
 
 .btn-icon {
   padding: 4px;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-color: transparent;
   background: transparent;
   color: var(--text-muted);
+  box-shadow: none;
 }
 
 .btn-icon:hover:not(:disabled) {
@@ -510,19 +635,19 @@ code,
   font-size: var(--text-supporting);
   font-weight: 500;
   color: var(--text-primary);
-  margin-bottom: var(--space-1);
+  margin-bottom: var(--space-2);
 }
 
 .field-hint {
   font-size: var(--text-metadata);
   color: var(--text-secondary);
-  margin-top: var(--space-1);
+  margin-top: var(--space-2);
 }
 
 .field-error {
   font-size: var(--text-metadata);
   color: var(--danger);
-  margin-top: var(--space-1);
+  margin-top: var(--space-2);
 }
 
 input[type="text"],
@@ -531,7 +656,7 @@ input[type="password"],
 select,
 textarea {
   width: 100%;
-  padding: 8px 12px;
+  padding: 9px 12px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-control);
   font-size: var(--text-body);
@@ -539,6 +664,12 @@ textarea {
   background: var(--surface);
   color: var(--text-primary);
   transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+input:hover:not(:disabled),
+select:hover:not(:disabled),
+textarea:hover:not(:disabled) {
+  border-color: #b3b9d0;
 }
 
 input::placeholder {
@@ -550,7 +681,7 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgb(79 70 229 / 0.12);
+  box-shadow: var(--ring-brand);
 }
 
 input[aria-invalid="true"],
@@ -560,7 +691,7 @@ select[aria-invalid="true"] {
 
 input[aria-invalid="true"]:focus,
 select[aria-invalid="true"]:focus {
-  box-shadow: 0 0 0 3px rgb(220 38 38 / 0.12);
+  box-shadow: 0 0 0 3px rgb(208 38 56 / 0.14);
 }
 
 /* ==========================================================================
@@ -575,19 +706,19 @@ select[aria-invalid="true"]:focus {
 
 .table th {
   text-align: left;
-  font-size: var(--text-metadata);
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--text-secondary);
-  padding: var(--space-3) var(--space-4);
+  color: var(--text-muted);
+  padding: 10px var(--space-4);
   border-bottom: 1px solid var(--border);
   background: var(--surface-muted);
   white-space: nowrap;
 }
 
 .table td {
-  padding: var(--space-3) var(--space-4);
+  padding: 10px var(--space-4);
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
@@ -596,8 +727,52 @@ select[aria-invalid="true"]:focus {
   border-bottom: none;
 }
 
+.table tbody tr {
+  transition: background var(--transition);
+}
+
 .table tbody tr:hover {
   background: var(--surface-muted);
+}
+
+/* A row that leads somewhere shows an arrow on hover, so the link is
+   discoverable without adding a second control to every row. */
+.row-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.row-link:hover {
+  color: var(--primary-hover);
+}
+
+.row-link-arrow {
+  color: var(--text-muted);
+  opacity: 0;
+  transform: translateX(-3px);
+  transition: opacity var(--transition), transform var(--transition);
+}
+
+.table tbody tr:hover .row-link-arrow,
+.row-link:focus-visible .row-link-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Flag keys and key prefixes read as code, so they get a subtle chip
+   rather than bare monospace text. */
+.table code {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .table-wrap {
@@ -606,7 +781,7 @@ select[aria-invalid="true"]:focus {
 
 .cell-actions {
   display: flex;
-  gap: var(--space-1);
+  gap: var(--space-2);
   justify-content: flex-end;
   align-items: center;
 }
@@ -619,13 +794,14 @@ select[aria-invalid="true"]:focus {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
-  border-radius: 999px;
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border);
   background: var(--surface-muted);
   color: var(--text-secondary);
   font-size: var(--text-metadata);
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   white-space: nowrap;
 }
 
@@ -660,8 +836,8 @@ select[aria-invalid="true"]:focus {
 .toggle {
   position: relative;
   display: inline-flex;
-  width: 38px;
-  height: 22px;
+  width: 42px;
+  height: 24px;
   flex-shrink: 0;
   cursor: pointer;
 }
@@ -681,7 +857,7 @@ select[aria-invalid="true"]:focus {
   position: absolute;
   inset: 0;
   background: var(--border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   transition: background var(--transition);
   pointer-events: none;
 }
@@ -690,21 +866,23 @@ select[aria-invalid="true"]:focus {
   position: absolute;
   top: 3px;
   left: 3px;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--surface);
-  box-shadow: 0 1px 2px rgb(15 23 42 / 0.25);
+  box-shadow: 0 1px 3px rgb(6 14 40 / 0.28);
   transition: transform var(--transition);
   pointer-events: none;
 }
 
+/* The ON state uses the brand gradient, so an enabled flag reads as
+   part of the product rather than a generic green switch. */
 .toggle input:checked + .toggle-track {
-  background: var(--success);
+  background: var(--brand-gradient);
 }
 
 .toggle input:checked + .toggle-track + .toggle-thumb {
-  transform: translateX(16px);
+  transform: translateX(18px);
 }
 
 .toggle input:focus-visible + .toggle-track {
@@ -761,49 +939,70 @@ select[aria-invalid="true"]:focus {
 }
 
 .env-tab {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-2);
   border: none;
-  border-bottom: 2px solid transparent;
   background: none;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
   color: var(--text-secondary);
   font-size: var(--text-body);
   font-family: inherit;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  transition: color var(--transition), border-color var(--transition);
+  transition: color var(--transition), background var(--transition);
+}
+
+.env-tab::after {
+  content: "";
+  position: absolute;
+  left: var(--space-3);
+  right: var(--space-3);
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: transparent;
+  transition: background var(--transition);
 }
 
 .env-tab:hover:not(:disabled) {
   color: var(--text-primary);
+  background: var(--surface-muted);
 }
 
 .env-tab[aria-selected="true"] {
   color: var(--text-primary);
-  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+
+.env-tab[aria-selected="true"]::after {
+  background: var(--primary);
 }
 
 .env-tab-version {
   font-size: var(--text-metadata);
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
 }
 
 .env-tab[aria-selected="true"] .env-tab-version {
   color: var(--text-secondary);
+  background: var(--primary-subtle);
 }
 
 /* Production is treated as a distinct context. */
-.env-tab-production[aria-selected="true"] {
-  border-bottom-color: var(--warning);
+.env-tab-production[aria-selected="true"]::after {
+  background: var(--warning);
 }
 
-.env-tab-production .env-tab-version {
+.env-tab-production[aria-selected="true"] .env-tab-version {
   color: var(--warning);
-  opacity: 0.75;
+  background: var(--warning-surface);
 }
 
 /* ==========================================================================
@@ -840,7 +1039,8 @@ select[aria-invalid="true"]:focus {
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  background: rgb(15 23 42 / 0.4);
+  background: rgb(6 14 40 / 0.45);
+  backdrop-filter: blur(2px);
   display: grid;
   place-items: center;
   padding: var(--space-4);
@@ -862,14 +1062,14 @@ select[aria-invalid="true"]:focus {
   background: var(--surface);
   border-radius: var(--radius-dialog);
   border: 1px solid var(--border);
-  box-shadow: 0 12px 32px rgb(15 23 42 / 0.16);
-  animation: dialog-in 140ms ease;
+  box-shadow: var(--shadow-lg);
+  animation: dialog-in 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes dialog-in {
   from {
     opacity: 0;
-    transform: translateY(6px) scale(0.99);
+    transform: translateY(8px) scale(0.98);
   }
 }
 
@@ -878,29 +1078,31 @@ select[aria-invalid="true"]:focus {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-4) 0;
+  padding: var(--space-5) var(--space-5) 0;
 }
 
 .dialog-title {
   font-size: var(--text-section-title);
   font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
 .dialog-description {
   font-size: var(--text-supporting);
   color: var(--text-secondary);
   margin-top: var(--space-1);
+  line-height: 1.55;
 }
 
 .dialog-body {
-  padding: var(--space-4);
+  padding: var(--space-4) var(--space-5);
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-5);
   border-top: 1px solid var(--border);
   background: var(--surface-muted);
 }
@@ -937,8 +1139,8 @@ select[aria-invalid="true"]:focus {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  background: var(--surface-muted);
-  border: 1px solid var(--border);
+  background: var(--brand-gradient-soft);
+  border: 1px solid var(--primary-subtle-border);
   border-radius: var(--radius-control);
   padding: var(--space-3);
   margin-bottom: var(--space-3);
@@ -950,6 +1152,7 @@ select[aria-invalid="true"]:focus {
   font-size: var(--text-metadata);
   word-break: break-all;
   line-height: 1.6;
+  color: var(--text-primary);
 }
 
 /* ==========================================================================
@@ -964,40 +1167,89 @@ select[aria-invalid="true"]:focus {
   flex-direction: column;
   gap: var(--space-2);
   z-index: 60;
-  max-width: 380px;
+  width: 380px;
+  max-width: calc(100vw - var(--space-8));
+  pointer-events: none;
 }
 
 .toast {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-2);
+  gap: var(--space-3);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-left: 3px solid var(--text-secondary);
-  border-radius: var(--radius-control);
-  box-shadow: 0 4px 14px rgb(15 23 42 / 0.1);
-  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
   font-size: var(--text-supporting);
-  animation: toast-in 140ms ease;
+  animation: toast-in 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
 }
 
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px) scale(0.97);
   }
 }
 
+/* A coloured disc carries the status, so the tone reads at a glance
+   without relying on the left border alone. */
+.toast-icon {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
 .toast-success {
-  border-left-color: var(--success);
+  border-color: var(--success-border);
+  background: var(--surface);
+}
+
+.toast-success .toast-icon {
+  background: var(--success-surface);
+  color: var(--success);
 }
 
 .toast-error {
-  border-left-color: var(--danger);
+  border-color: var(--danger-border);
+  background: var(--surface);
+}
+
+.toast-error .toast-icon {
+  background: var(--danger-surface);
+  color: var(--danger);
 }
 
 .toast-message {
   flex: 1;
+  color: var(--text-primary);
+  line-height: 1.5;
+  padding-top: 1px;
+}
+
+/* The dismiss button is quiet until it is needed, so the toast stays
+   readable. */
+.toast-close {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+
+.toast-close:hover {
+  background: var(--surface-muted);
   color: var(--text-primary);
 }
 
@@ -1024,13 +1276,14 @@ select[aria-invalid="true"]:focus {
   max-width: 380px;
   margin-left: auto;
   margin-right: auto;
+  line-height: 1.55;
 }
 
 .skeleton {
   background: linear-gradient(
     90deg,
     var(--surface-muted) 25%,
-    #e8edf3 37%,
+    var(--surface-sunken) 37%,
     var(--surface-muted) 63%
   );
   background-size: 400% 100%;
@@ -1077,34 +1330,54 @@ select[aria-invalid="true"]:focus {
   display: grid;
   place-items: center;
   padding: var(--space-6);
+  /* A soft brand wash behind the card, so the sign in screen carries
+     the identity without a heavy illustration. */
+  background:
+    radial-gradient(
+      70% 55% at 50% 0%,
+      rgb(124 125 251 / 0.16) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      55% 45% at 85% 100%,
+      rgb(63 57 214 / 0.12) 0%,
+      transparent 70%
+    ),
+    var(--background);
 }
 
 .login-card {
   width: 100%;
-  max-width: 380px;
+  max-width: 400px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-card);
+  border-radius: 18px;
   padding: var(--space-8);
+  box-shadow: var(--shadow-lg);
 }
 
 .login-brand {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   margin-bottom: var(--space-6);
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+  color: var(--brand-navy);
 }
 
 .login-title {
-  font-size: 20px;
+  font-size: 21px;
   margin-bottom: var(--space-1);
+  letter-spacing: -0.02em;
 }
 
 .login-subtitle {
   color: var(--text-secondary);
   font-size: var(--text-supporting);
   margin-bottom: var(--space-6);
+  line-height: 1.55;
 }
 
 /* ==========================================================================
@@ -1166,11 +1439,10 @@ select[aria-invalid="true"]:focus {
     width: var(--sidebar-collapsed-width);
   }
 
-  .sidebar-brand span:not(.brand-mark),
+  .sidebar-brand .brand-wordmark-image,
   .nav-section-label,
   .nav-link span,
-  .account-text,
-  .account-action {
+  .account-text {
     display: none;
   }
 

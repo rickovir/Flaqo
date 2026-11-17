@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BrandLockup } from "@/components/Brand";
 import { ApiError, login } from "@/lib/api";
 
 export default function LoginPage() {
@@ -36,10 +37,7 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-brand">
-          <span className="brand-mark" aria-hidden="true">
-            FF
-          </span>
-          <span>Feature Flags</span>
+          <BrandLockup priority />
         </div>
 
         <h1 className="login-title">Sign in</h1>
@@ -60,6 +58,7 @@ export default function LoginPage() {
               id="email"
               type="email"
               autoComplete="username"
+              placeholder="you@company.com"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -72,6 +71,7 @@ export default function LoginPage() {
               id="password"
               type="password"
               autoComplete="current-password"
+              placeholder="Enter your password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}

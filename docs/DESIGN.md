@@ -39,28 +39,56 @@ Do not directly copy their interfaces.
 
 - Light mode by default.
 - Neutral surfaces.
-- Indigo as the primary brand accent.
+- The Flaqo violet as the primary brand accent.
 - Subtle borders.
 - Minimal shadows.
 - Avoid excessive gradients.
 - Avoid unnecessary decorative illustrations.
 
+### Brand
+
+The product is **Flaqo**. The supplied brand artwork is used as-is:
+
+| Asset | File | Use |
+|---|---|---|
+| Flag mark | `apps/dashboard/public/brand/flaqo-flag-128.png` | Sidebar and login lockup |
+| Wordmark | `apps/dashboard/public/brand/flaqo-wordmark-art.png` | Beside the mark |
+| App icon | `apps/dashboard/public/icon-192.png` | Favicon and manifest |
+
+The flag artwork already carries the brand gradient. Do not place it on a
+coloured tile, and do not add a background behind it — that mutes the
+gradient and muddies the mark.
+
+The gradient is reused for primary buttons, the enabled toggle, and the
+avatar, so the interface and the mark share one palette.
+
 ### Color tokens
+
+The brand colours were sampled from the supplied artwork rather than
+chosen by eye:
+
+| Brand role | Value | Sampled from |
+|---|---|---|
+| brand-navy | #060E28 | The "Flaqo" lettering |
+| brand-deep | #1D1EAA | The flagpole |
+| brand-mid | #3F39D6 | The flag body |
+| primary | #5A4CEE | The flag body |
+| brand-lilac | #7C7DFB | The top highlight of the flag |
 
 | Token | Value | Usage |
 |---|---|---|
-| background | #F8FAFC | Application background |
+| background | #F7F8FC | Application background |
 | surface | #FFFFFF | Cards and panels |
-| surface-muted | #F1F5F9 | Secondary surfaces |
-| primary | #4F46E5 | Primary actions |
-| primary-hover | #4338CA | Hover state |
-| text-primary | #0F172A | Main text |
-| text-secondary | #64748B | Supporting text |
-| text-muted | #94A3B8 | Muted text |
-| border | #E2E8F0 | Borders and dividers |
-| success | #16A34A | Enabled and active |
-| danger | #DC2626 | Destructive actions |
-| warning | #D97706 | Warnings |
+| surface-muted | #F2F4FA | Secondary surfaces |
+| primary | #5A4CEE | Primary actions |
+| primary-hover | #4A3CD6 | Hover state |
+| text-primary | #060E28 | Main text |
+| text-secondary | #5B6480 | Supporting text |
+| text-muted | #8B93AA | Muted text |
+| border | #E4E7F0 | Borders and dividers |
+| success | #12855C | Enabled and active |
+| danger | #D02638 | Destructive actions |
+| warning | #B45309 | Warnings |
 
 Use semantic colors consistently.
 

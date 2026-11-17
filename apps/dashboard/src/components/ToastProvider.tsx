@@ -80,11 +80,34 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           <div
             key={toast.id}
             className={`toast toast-${toast.tone}`}
+            role={toast.tone === "error" ? "alert" : undefined}
           >
+            <span className="toast-icon" aria-hidden="true">
+              {toast.tone === "success" ? (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M3.5 8.5l3 3 6-7"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M8 4.5v4.5M8 11.5h.01"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              )}
+            </span>
             <span className="toast-message">{toast.message}</span>
             <button
               type="button"
-              className="btn btn-icon"
+              className="toast-close"
               onClick={() => dismiss(toast.id)}
               aria-label="Dismiss notification"
             >

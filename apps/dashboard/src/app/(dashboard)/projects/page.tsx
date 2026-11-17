@@ -113,7 +113,7 @@ export default function ProjectsPage() {
                 <tr>
                   <th scope="col">Name</th>
                   <th scope="col">Slug</th>
-                  <th scope="col" style={{ width: 160 }}>
+                  <th scope="col" style={{ width: 120 }}>
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
@@ -123,10 +123,26 @@ export default function ProjectsPage() {
                   <tr key={project.id}>
                     <td>
                       <Link
+                        className="row-link"
                         href={`/projects/${project.id}`}
-                        style={{ fontWeight: 500 }}
                       >
                         {project.name}
+                        <svg
+                          className="row-link-arrow"
+                          width="14"
+                          height="14"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M3 11L11 3M11 3H5M11 3v6"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
                       </Link>
                     </td>
                     <td>
@@ -137,13 +153,6 @@ export default function ProjectsPage() {
                     </td>
                     <td>
                       <div className="cell-actions">
-                        <Link
-                          href={`/projects/${project.id}`}
-                          className="btn btn-sm"
-                          aria-label={`Manage ${project.name}`}
-                        >
-                          Manage
-                        </Link>
                         <button
                           type="button"
                           className="btn btn-sm btn-danger"

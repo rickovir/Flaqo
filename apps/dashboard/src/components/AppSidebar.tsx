@@ -1,8 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { BrandMark } from "@/components/Brand";
 import { useSession } from "@/lib/useSession";
 
 /** A small inline icon set, sized to the current text. */
@@ -36,6 +38,7 @@ const ICONS = {
   settings:
     "M8 5.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5zM8 1.5v1.6M8 12.9v1.6M14.5 8h-1.6M3.1 8H1.5M12.6 3.4l-1.1 1.1M4.5 11.5l-1.1 1.1M12.6 12.6l-1.1-1.1M4.5 4.5L3.4 3.4",
   logout: "M6 14H3.5a1 1 0 01-1-1V3a1 1 0 011-1H6M10 11l3-3-3-3M13 8H6",
+  chevron: "M4 6l4 4 4-4",
 } as const;
 
 /**
@@ -85,10 +88,15 @@ export function AppSidebar() {
   return (
     <aside className="sidebar">
       <Link className="sidebar-brand" href="/projects">
-        <span className="brand-mark" aria-hidden="true">
-          FF
-        </span>
-        <span>Feature Flags</span>
+        <BrandMark priority />
+        <Image
+          className="brand-wordmark-image"
+          src="/brand/flaqo-wordmark-art.png"
+          alt="Flaqo"
+          width={96}
+          height={35}
+          priority
+        />
       </Link>
 
       <nav className="sidebar-nav" aria-label="Workspace">
@@ -145,7 +153,7 @@ export function AppSidebar() {
           <span className="account-text">
             <span className="account-email">{user?.email ?? "Signed out"}</span>
           </span>
-          <span className="account-action">Menu</span>
+          <Icon path={ICONS.chevron} />
         </button>
 
         {menuOpen ? (
