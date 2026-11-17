@@ -300,11 +300,21 @@ with placeholders.
 
 ### 7.1 Supabase project access
 
-The development project is `toctqvfglwuvvnovkmsc`.
+The development project is identified by `SUPABASE_PROJECT_REF` in the
+local environment. The value is not committed, because the project ref
+is a public identifier and there is no reason to publish which project a
+developer is working against. Set it in `.env`:
+
+``` dotenv
+SUPABASE_PROJECT_REF=your-development-project-ref
+```
+
+The Supabase MCP server reads the same variable, so `.mcp.json` refers
+to it as `${SUPABASE_PROJECT_REF}` rather than hardcoding it.
 
 **Verified.** The project is provisioned and reachable:
-`db.toctqvfglwuvvnovkmsc.supabase.co` and
-`aws-0-toctqvfglwuvvnovkmsc.pooler.supabase.com` both resolve, TCP
+`db.<project-ref>.supabase.co` and
+`aws-0-<project-ref>.pooler.supabase.com` both resolve, TCP
 port 5432 on the direct host accepts connections, and the project's API
 tier responds with `401 Invalid API key` (expected without a key). The
 project is neither paused nor deleted.
@@ -385,8 +395,8 @@ need to be known to anyone but the developer running the API.
 `.env` holds both connection strings:
 
 ``` dotenv
-DATABASE_URL=postgresql://ff_runtime:<pw>@db.toctqvfglwuvvnovkmsc.supabase.co:5432/postgres?sslmode=require
-MIGRATION_DATABASE_URL=postgresql://ff_migrator:<pw>@db.toctqvfglwuvvnovkmsc.supabase.co:5432/postgres?sslmode=require
+DATABASE_URL=postgresql://ff_runtime:<pw>@db.<project-ref>.supabase.co:5432/postgres?sslmode=require
+MIGRATION_DATABASE_URL=postgresql://ff_migrator:<pw>@db.<project-ref>.supabase.co:5432/postgres?sslmode=require
 ```
 
 The direct IPv6 host was confirmed reachable from the development

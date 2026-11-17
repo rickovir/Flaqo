@@ -25,7 +25,7 @@ This toolkit configures Claude Code for the Feature Flag Platform repository.
 
 1. Copy the toolkit contents into the root of `feature-flag-platform`.
 2. Ensure the three blueprint files are in `docs/`.
-3. Replace `YOUR_DEV_PROJECT_REF` in `.mcp.json` with the ref of your dedicated development project. Keep `read_only=true`.
+3. Set `SUPABASE_PROJECT_REF` in your shell to the ref of your dedicated development project. `.mcp.json` reads it as `${SUPABASE_PROJECT_REF}`, so no edit to the tracked file is needed. Keep `read_only=true`.
 4. Set `CONTEXT7_API_KEY` in your shell if you have one (optional), then start Claude Code from the repository root.
 5. Approve the project MCP servers when prompted. Complete Supabase OAuth if requested.
 6. Run `/mcp` and verify Supabase, Context7, and Playwright connectivity.
