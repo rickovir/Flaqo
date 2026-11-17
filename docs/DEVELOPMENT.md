@@ -68,6 +68,34 @@ go test ./...
 go test -race ./...
 ```
 
+## Containers
+
+The compose stack runs the API, the dashboard, and the demo application:
+
+```bash
+cd infrastructure/docker
+cp ../../.env .env
+docker compose up --build -d
+```
+
+See `infrastructure/docker/README.md` for the setup, the database
+connectivity notes, and the production guidance.
+
+### IPv6 and the database
+
+The Supabase direct host resolves to an IPv6 address only, and Docker's
+default bridge network has no IPv6 route. The compose file therefore
+enables IPv6 on its network:
+
+``` yaml
+networks:
+  featureflag:
+    enable_ipv6: true
+```
+
+Without it, the API container fails to connect with `network is
+unreachable`.
+
 ## Migrations
 
 Migrations run as the `ff_migrator` role, never as the runtime role:

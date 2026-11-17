@@ -1,0 +1,13 @@
+# Build from the source and the module manifests only.
+*
+
+!go.mod
+!go.sum
+!cmd
+!internal
+!sql
+
+# Local artefacts.
+**/*.exe
+**/*.test
+bin/

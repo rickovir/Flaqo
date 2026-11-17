@@ -11,7 +11,10 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY . .
+# Copy only the source directories, so the build does not depend on
+# whatever else happens to be in the context.
+COPY cmd ./cmd
+COPY internal ./internal
 
 # CGO_ENABLED=0 produces a static binary. -trimpath removes local filesystem
 # paths, and the build flags come from the Go project rather than the image.

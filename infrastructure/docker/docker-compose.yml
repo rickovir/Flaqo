@@ -1,0 +1,122 @@
+# Local development stack.
+#
+# It runs the API, the dashboard, and the demo application against the
+# Supabase PostgreSQL project. The database is not containerised, because
+# Supabase is the managed provider.
+#
+# Before running:
+#   1. Copy .env.example to .env and fill in the values.
+#   2. Apply the migrations: make migrate-up
+#
+# Start:   docker compose up --build
+# Stop:    docker compose down
+
+name: feature-flag-platform
+
+services:
+  api:
+    build:
+      context: ../../apps/api
+      dockerfile: Dockerfile
+    image: featureflag/api:local
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      API_LISTEN_ADDR: ":8080"
+      API_PUBLIC_URL: "${API_PUBLIC_URL:-http://localhost:8080}"
+      ALLOWED_DASHBOARD_ORIGINS: "${ALLOWED_DASHBOARD_ORIGINS:-http://localhost:3000}"
+      DATABASE_URL: "${DATABASE_URL}"
+      CSRF_SECRET: "${CSRF_SECRET}"
+      SESSION_COOKIE_NAME: "${SESSION_COOKIE_NAME:-ff_session}"
+      SESSION_ABSOLUTE_TTL_HOURS: "${SESSION_ABSOLUTE_TTL_HOURS:-24}"
+      SESSION_IDLE_TTL_HOURS: "${SESSION_IDLE_TTL_HOURS:-8}"
+      COOKIE_SECURE: "${COOKIE_SECURE:-false}"
+      ARGON2_TIME: "${ARGON2_TIME:-3}"
+      ARGON2_MEMORY_KIB: "${ARGON2_MEMORY_KIB:-65536}"
+      ARGON2_THREADS: "${ARGON2_THREADS:-2}"
+      ARGON2_KEY_LENGTH: "${ARGON2_KEY_LENGTH:-32}"
+      SDK_KEY_PEPPER: "${SDK_KEY_PEPPER:-}"
+      LOGIN_RATE_LIMIT_MAX: "${LOGIN_RATE_LIMIT_MAX:-5}"
+      LOGIN_RATE_LIMIT_WINDOW_MINUTES: "${LOGIN_RATE_LIMIT_WINDOW_MINUTES:-15}"
+      SSE_HEARTBEAT_INTERVAL_SECONDS: "${SSE_HEARTBEAT_INTERVAL_SECONDS:-15}"
+      SSE_MAX_CONNECTION_SECONDS: "${SSE_MAX_CONNECTION_SECONDS:-3600}"
+      SSE_SUBSCRIBER_QUEUE_SIZE: "${SSE_SUBSCRIBER_QUEUE_SIZE:-16}"
+      SSE_MAX_CONNECTIONS_PER_KEY: "${SSE_MAX_CONNECTIONS_PER_KEY:-10}"
+      DATABASE_MAX_CONNS: "${DATABASE_MAX_CONNS:-10}"
+      DATABASE_MIN_CONNS: "${DATABASE_MIN_CONNS:-2}"
+    healthcheck:
+      # The readiness endpoint checks database connectivity and the
+      # snapshot cache, so it fails when the API cannot serve SDK traffic.
+      test:
+        - CMD
+        - /server
+        - -healthcheck
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    networks:
+      - featureflag
+
+  dashboard:
+    build:
+      context: ../../apps/dashboard
+      dockerfile: Dockerfile
+      args:
+        # The API base URL is inlined into the browser bundle, so it must
+        # be reachable from the browser, not from inside the network.
+        NEXT_PUBLIC_API_BASE_URL: "${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}"
+    image: featureflag/dashboard:local
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - featureflag
+
+  demo-app:
+    build:
+      # The build context is the repository root because the demo app
+      # installs the SDK from the workspace.
+      context: ../..
+      dockerfile: apps/demo-app/Dockerfile
+    image: featureflag/demo-app:local
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      API_URL: "http://api:8080"
+      PORT: "4000"
+      # The demo needs a real SDK key. It is read from the environment and
+      # never committed.
+      SDK_KEY: "${DEMO_SDK_KEY:-}"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - featureflag
+
+networks:
+  featureflag:
+    driver: bridge
+    # The Supabase direct host is IPv6 only. A bridge network with IPv6
+    # enabled gives the containers a route to it, so the connection
+    # strings can keep using the direct host.
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: 172.31.0.0/16
+        - subnet: fd00:ff::/64

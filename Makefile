@@ -135,6 +135,32 @@ demo-start: ## Run the demo app (needs SDK_KEY)
 	cd $(DEMO_DIR) && npm start
 
 # ---------------------------------------------------------------------------
+# Docker
+# ---------------------------------------------------------------------------
+
+COMPOSE_DIR := infrastructure/docker
+
+.PHONY: docker-build
+docker-build: ## Build all container images
+	cd $(COMPOSE_DIR) && docker compose build
+
+.PHONY: docker-up
+docker-up: ## Start the container stack
+	cd $(COMPOSE_DIR) && docker compose up -d
+
+.PHONY: docker-down
+docker-down: ## Stop the container stack
+	cd $(COMPOSE_DIR) && docker compose down
+
+.PHONY: docker-logs
+docker-logs: ## Follow the container logs
+	cd $(COMPOSE_DIR) && docker compose logs -f
+
+.PHONY: docker-ps
+docker-ps: ## Show the container status
+	cd $(COMPOSE_DIR) && docker compose ps
+
+# ---------------------------------------------------------------------------
 # Everything
 # ---------------------------------------------------------------------------
 

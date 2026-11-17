@@ -1,0 +1,14 @@
+# Build from the manifests and the source only.
+*
+
+!package.json
+!package-lock.json
+!next.config.ts
+!tsconfig.json
+!next-env.d.ts
+!src
+!public
+
+# Build output and local artefacts.
+.next
+node_modules

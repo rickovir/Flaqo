@@ -31,6 +31,16 @@ import (
 )
 
 func main() {
+	// The health check runs as a separate entry point in the same binary,
+	// so the container image needs no extra tooling.
+	if len(os.Args) > 1 && os.Args[1] == "-healthcheck" {
+		if err := runHealthcheck(); err != nil {
+			fmt.Fprintf(os.Stderr, "unhealthy: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	if err := run(); err != nil {
 		slog.Error("fatal", "error", err)
 		os.Exit(1)
