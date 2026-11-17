@@ -1,0 +1,47 @@
+{
+  "name": "@featureflag/sdk",
+  "version": "0.1.0",
+  "description": "Framework-agnostic feature flag SDK with local evaluation and SSE synchronization",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "tsup": "9.0.0",
+    "typescript": "6.0.3",
+    "vitest": "5.1.0"
+  },
+  "keywords": [
+    "feature-flag",
+    "feature-toggle",
+    "flags",
+    "sse"
+  ],
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}

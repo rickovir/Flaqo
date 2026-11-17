@@ -116,6 +116,10 @@ sdk-build: ## Build the SDK
 sdk-test: ## Test the SDK
 	cd $(SDK_DIR) && npm test
 
+.PHONY: sdk-typecheck
+sdk-typecheck: ## Type check the SDK
+	cd $(SDK_DIR) && npm run typecheck
+
 # ---------------------------------------------------------------------------
 # Everything
 # ---------------------------------------------------------------------------
