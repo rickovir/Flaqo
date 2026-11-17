@@ -32,31 +32,31 @@ type Config struct {
 	DatabaseQueryTimeout   time.Duration
 
 	// Sessions and cookies
-	SessionCookieName string
+	SessionCookieName  string
 	SessionAbsoluteTTL time.Duration
 	SessionIdleTTL     time.Duration
 	CookieSecure       bool
 	CSRFSecret         []byte
 
 	// Password hashing (Argon2id)
-	Argon2Time        uint32
-	Argon2MemoryKiB   uint32
-	Argon2Threads     uint8
-	Argon2KeyLength   uint32
-	Argon2SaltLength  uint32
+	Argon2Time       uint32
+	Argon2MemoryKiB  uint32
+	Argon2Threads    uint8
+	Argon2KeyLength  uint32
+	Argon2SaltLength uint32
 
 	// SDK keys
 	SDKKeyPepper []byte
 
 	// Rate limiting
-	LoginRateLimitMax      int
-	LoginRateLimitWindow    time.Duration
+	LoginRateLimitMax    int
+	LoginRateLimitWindow time.Duration
 
 	// SSE
-	SSEHeartbeatInterval  time.Duration
-	SSEMaxConnection      time.Duration
-	SSESubscriberQueue    int
-	SSEMaxConnectionsKey  int
+	SSEHeartbeatInterval time.Duration
+	SSEMaxConnection     time.Duration
+	SSESubscriberQueue   int
+	SSEMaxConnectionsKey int
 }
 
 // Load reads configuration from the environment and validates it.
@@ -65,13 +65,13 @@ type Config struct {
 // misconfigured deployment fails at startup instead of at first request.
 func Load() (*Config, error) {
 	c := &Config{
-		ListenAddr:      getEnv("API_LISTEN_ADDR", ":8080"),
-		PublicURL:       getEnv("API_PUBLIC_URL", "http://localhost:8080"),
-		AllowedOrigins:  splitCSV(getEnv("ALLOWED_DASHBOARD_ORIGINS", "http://localhost:3000")),
-		ShutdownTimeout: getDuration("SHUTDOWN_TIMEOUT", 15*time.Second),
-		ReadTimeout:     getDuration("HTTP_READ_TIMEOUT", 15*time.Second),
-		WriteTimeout:    getDuration("HTTP_WRITE_TIMEOUT", 30*time.Second),
-		IdleTimeout:     getDuration("HTTP_IDLE_TIMEOUT", 60*time.Second),
+		ListenAddr:        getEnv("API_LISTEN_ADDR", ":8080"),
+		PublicURL:         getEnv("API_PUBLIC_URL", "http://localhost:8080"),
+		AllowedOrigins:    splitCSV(getEnv("ALLOWED_DASHBOARD_ORIGINS", "http://localhost:3000")),
+		ShutdownTimeout:   getDuration("SHUTDOWN_TIMEOUT", 15*time.Second),
+		ReadTimeout:       getDuration("HTTP_READ_TIMEOUT", 15*time.Second),
+		WriteTimeout:      getDuration("HTTP_WRITE_TIMEOUT", 30*time.Second),
+		IdleTimeout:       getDuration("HTTP_IDLE_TIMEOUT", 60*time.Second),
 		MaxRequestBodyLen: getInt64("MAX_REQUEST_BODY_BYTES", 1<<20),
 
 		DatabaseURL:            os.Getenv("DATABASE_URL"),
@@ -94,7 +94,7 @@ func Load() (*Config, error) {
 
 		SDKKeyPepper: []byte(os.Getenv("SDK_KEY_PEPPER")),
 
-		LoginRateLimitMax:   getInt("LOGIN_RATE_LIMIT_MAX", 5),
+		LoginRateLimitMax:    getInt("LOGIN_RATE_LIMIT_MAX", 5),
 		LoginRateLimitWindow: getDuration("LOGIN_RATE_LIMIT_WINDOW_MINUTES", 15*time.Minute),
 
 		SSEHeartbeatInterval: getDuration("SSE_HEARTBEAT_INTERVAL_SECONDS", 15*time.Second),
