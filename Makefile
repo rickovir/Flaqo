@@ -121,6 +121,20 @@ sdk-typecheck: ## Type check the SDK
 	cd $(SDK_DIR) && npm run typecheck
 
 # ---------------------------------------------------------------------------
+# Demo app
+# ---------------------------------------------------------------------------
+
+DEMO_DIR := apps/demo-app
+
+.PHONY: demo-install
+demo-install: ## Install the demo app dependencies
+	cd $(DEMO_DIR) && npm install
+
+.PHONY: demo-start
+demo-start: ## Run the demo app (needs SDK_KEY)
+	cd $(DEMO_DIR) && npm start
+
+# ---------------------------------------------------------------------------
 # Everything
 # ---------------------------------------------------------------------------
 

@@ -1,0 +1,13 @@
+{
+  "name": "@featureflag/demo-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A minimal application that demonstrates the feature flag SDK",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@featureflag/sdk": "file:../../packages/sdk"
+  }
+}

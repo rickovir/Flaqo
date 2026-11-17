@@ -65,3 +65,8 @@ yarn-debug.log*
 yarn-error.log*
 /tmp/
 /data/
+
+# ---- Demo app ----
+# The demo app links the SDK from the workspace, so its install output
+# is not tracked.
+apps/demo-app/node_modules/
