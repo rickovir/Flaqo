@@ -49,6 +49,10 @@ coverage/
 /apps/dashboard/playwright-report/
 /apps/dashboard/test-results/
 
+# ---- Local screenshots ----
+# Captured for review only. They are regenerated on demand.
+screenshots/
+
 # ---- Editors / OS ----
 .vscode/*
 !.vscode/extensions.json

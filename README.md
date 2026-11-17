@@ -1,4 +1,18 @@
-# Feature Flag Platform
+<div align="center">
+
+![Flaqo](assets/hero.png)
+
+**Feature flags without the redeploy.**
+
+[![Go](https://img.shields.io/badge/Go-1.27.4-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![Next.js](https://img.shields.io/badge/Next.js-16.4.6-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.0.3-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![License](https://img.shields.io/badge/license-MIT-5A4CEE)](#license)
+
+</div>
+
+---
 
 A lightweight feature flag platform. An administrator manages Boolean
 flags per project and environment in a web dashboard, and connected
@@ -8,6 +22,16 @@ redeploy.
 This is deliberately **not** an experimentation platform. There are no
 A/B tests, no user targeting, no percentage rollouts, and no analytics.
 The scope is the core flag lifecycle, done properly.
+
+<div align="center">
+
+![The Flaqo dashboard](assets/dashboard-preview.png)
+
+</div>
+
+<div align="center">
+  <img src="assets/sdk-keys-preview.png" alt="SDK key management" width="88%">
+</div>
 
 ## What it does
 
@@ -53,6 +77,7 @@ repository. Each builds and deploys independently.
 | [docs/TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md) | Architecture, schema, API, SSE, security |
 | [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) | Milestones, tests, release checklist |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Toolchain setup and its Windows specifics |
+| [docs/DESIGN.md](docs/DESIGN.md) | The dashboard design system and brand tokens |
 
 ## Requirements
 
@@ -382,6 +407,14 @@ The API runs as a **single instance**. The configuration cache and the
 SSE subscriber registry are in process, so a second instance would not
 see changes made through the first. Cross-instance propagation is
 documented as a growth path, not an MVP feature.
+
+## Brand
+
+The product is **Flaqo**. The brand artwork lives in
+`apps/dashboard/public/brand/` and the dashboard reads its colours from
+the tokens in [docs/DESIGN.md](docs/DESIGN.md). The primary is
+`#5A4CEE`, sampled from the supplied flag artwork rather than chosen by
+eye.
 
 ## License
 
