@@ -34,13 +34,26 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
-      <h1>Sign in</h1>
-      <p className="subtitle">Manage your projects and feature flags.</p>
+      <div className="login-card">
+        <div className="login-brand">
+          <span className="brand-mark" aria-hidden="true">
+            FF
+          </span>
+          <span>Feature Flags</span>
+        </div>
 
-      <div className="card">
-        {error ? <div className="error">{error}</div> : null}
+        <h1 className="login-title">Sign in</h1>
+        <p className="login-subtitle">
+          Manage your projects, environments, and feature flags.
+        </p>
 
         <form onSubmit={handleSubmit}>
+          {error ? (
+            <div className="error-state" role="alert" style={{ marginBottom: "var(--space-4)" }}>
+              <div className="error-state-message">{error}</div>
+            </div>
+          ) : null}
+
           <div className="field">
             <label htmlFor="email">Email</label>
             <input
@@ -66,7 +79,12 @@ export default function LoginPage() {
           </div>
 
           <div className="actions">
-            <button className="primary" type="submit" disabled={submitting}>
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={submitting}
+              style={{ width: "100%" }}
+            >
               {submitting ? "Signing in..." : "Sign in"}
             </button>
           </div>

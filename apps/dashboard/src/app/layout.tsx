@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ToastProvider } from "@/components/ToastProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,17 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <div className="layout">
-          <header className="header">
-            <a className="brand" href="/">
-              Feature Flags
-            </a>
-            <nav className="nav">
-              <a href="/projects">Projects</a>
-            </nav>
-          </header>
-          <main className="main">{children}</main>
-        </div>
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

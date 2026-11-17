@@ -305,7 +305,7 @@ export async function updateFlagDescription(
 ): Promise<void> {
   await request(`/api/v1/flags/${flagId}`, {
     method: "PATCH",
-    body: JSON.stringify({ key: "", description }),
+    body: JSON.stringify({ description }),
   });
 }
 
