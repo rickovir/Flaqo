@@ -34,6 +34,24 @@ The dashboard, API, and SDK live in one Git repository but remain
 independently buildable and deployable. The Go backend is one deployable
 application with internal modules, not a collection of microservices.
 
+### 1.1 Pinned versions
+
+Versions are pinned so that builds are reproducible. Go's `go.mod`
+records the exact module versions; the toolchain is pinned with the
+`toolchain` directive.
+
+  Component                Version
+  ------------------------ ---------------------------
+  Go toolchain             1.27.4
+  github.com/jackc/pgx/v5  v5.13.0
+  github.com/go-chi/chi/v5 v5.5.0
+  github.com/golang-migrate/migrate/v4 v4.20.1
+  sqlc                     v1.31.1
+  Node.js                  24.x (dashboard and SDK build)
+
+Upgrade these deliberately rather than opportunistically, and re-run
+the full test suite after any upgrade.
+
 ## 2. Repository layout
 
 ``` text
@@ -1074,7 +1092,7 @@ Resolved in this revision and no longer open:
 
 Still open:
 
--   Exact Go and dependency versions.
+-   ~~Exact Go and dependency versions.~~ Pinned in §1.1.
 -   Dashboard/API domain and cookie topology. The CSRF mechanism
     (§7.1) and cookie flags (§10) are specified, but the domain layout
     that determines the cookie's `SameSite` and `Secure` values in
