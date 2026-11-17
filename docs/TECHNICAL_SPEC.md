@@ -131,9 +131,15 @@ Supabase Auth, Edge Functions, Realtime, or proprietary database APIs.
 -   Maintain subscribers by project/environment.
 -   Each subscriber has a bounded event channel.
 -   Publish version notifications, not full configuration payloads.
--   If a subscriber's channel is full, close that stream so the SDK
-    reconnects and fetches the latest snapshot; never block the flag
-    update path waiting for a slow client.
+-   If a subscriber's channel is full, replace its pending event with
+    the newer version rather than disconnecting it. An intermediate
+    version carries no information the subscriber lacks: it fetches the
+    full snapshot on any newer version, so the newest pending version is
+    sufficient.
+-   If the pending event cannot be replaced, because a concurrent reader
+    emptied the queue, disconnect that subscriber so it reconnects and
+    fetches the latest snapshot. Never block the flag update path
+    waiting for a slow client.
 -   Send periodic heartbeat comments.
 -   Respect request context cancellation and graceful shutdown.
 -   Enforce connection limits and per-key rate limits appropriate to
@@ -776,8 +782,11 @@ connected.
 
 -   Bounded per-client event channel.
 -   Never block database mutation or other subscribers on a slow client.
--   Disconnect slow consumers and let them reconnect/fetch the latest
-    snapshot.
+-   A consumer that falls behind keeps only the newest pending version.
+    Intermediate versions are not needed: the consumer fetches the full
+    snapshot on any newer version.
+-   Disconnect a consumer only when its pending event cannot be
+    replaced, and let it reconnect and fetch the latest snapshot.
 -   Heartbeat to keep intermediaries from closing idle connections.
 -   Close streams on context cancellation, key revocation detection,
     server shutdown, or configured maximum connection lifetime.

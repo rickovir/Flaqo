@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/featureflag/api/internal/featureflag"
 	"github.com/featureflag/api/internal/project"
 	"github.com/featureflag/api/internal/sdkkey"
+	"github.com/featureflag/api/internal/stream"
 )
 
 // Server holds the dependencies the HTTP handlers need.
@@ -21,6 +23,9 @@ type Server struct {
 	flags     *featureflag.Service
 	sdkKeys   *sdkkey.Service
 	snapshots *config.Store
+	builder   *config.Builder
+	streams   *stream.Manager
+	logger    *slog.Logger
 }
 
 // NewServer returns a Server with the given dependencies.
@@ -31,6 +36,9 @@ func NewServer(
 	flags *featureflag.Service,
 	sdkKeys *sdkkey.Service,
 	snapshots *config.Store,
+	builder *config.Builder,
+	streams *stream.Manager,
+	logger *slog.Logger,
 ) *Server {
 	return &Server{
 		cfg:       cfg,
@@ -39,6 +47,9 @@ func NewServer(
 		flags:     flags,
 		sdkKeys:   sdkKeys,
 		snapshots: snapshots,
+		builder:   builder,
+		streams:   streams,
+		logger:    logger,
 	}
 }
 
@@ -88,6 +99,23 @@ func (s *Server) Router() http.Handler {
 				r.Delete("/{keyID}", s.handleRevokeSDKKey)
 			})
 		})
+	})
+
+	return r
+}
+
+// SDKRouter returns the router for the SDK endpoints.
+//
+// These endpoints live at /sdk/v1 and are mounted separately from the
+// dashboard API at /api/v1, so an SDK credential is never presented to a
+// dashboard route and vice versa.
+func (s *Server) SDKRouter() http.Handler {
+	r := chi.NewRouter()
+
+	r.Group(func(r chi.Router) {
+		r.Use(s.sdkAuthMiddleware)
+		r.Get("/config", s.handleSDKConfig)
+		r.Get("/stream", s.handleSDKStream)
 	})
 
 	return r

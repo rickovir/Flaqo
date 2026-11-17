@@ -17,6 +17,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/google/uuid"
+
 	"github.com/featureflag/api/internal/auth"
 	"github.com/featureflag/api/internal/config"
 	"github.com/featureflag/api/internal/database"
@@ -25,6 +27,7 @@ import (
 	"github.com/featureflag/api/internal/middleware"
 	"github.com/featureflag/api/internal/project"
 	"github.com/featureflag/api/internal/sdkkey"
+	"github.com/featureflag/api/internal/stream"
 )
 
 func main() {
@@ -72,10 +75,27 @@ func run() error {
 		SaltLength: cfg.Argon2SaltLength,
 	}, cfg.CSRFSecret, cfg.SessionAbsoluteTTL, cfg.SessionIdleTTL, limiter)
 	projectSvc := project.NewService(pool.Pool)
-	flagSvc := featureflag.NewService(pool.Pool, nil)
 	sdkKeySvc := sdkkey.NewService(pool.Pool, cfg.SDKKeyPepper)
 
-	api := httpapi.NewServer(cfg, authSvc, projectSvc, flagSvc, sdkKeySvc, snapshots)
+	// The publisher installs the new snapshot and then notifies
+	// subscribers. Both happen only after the transaction committed.
+	builder := config.NewBuilder(pool.Pool)
+	streams := stream.NewManager(cfg.SSESubscriberQueue, logger)
+	flagSvc := featureflag.NewService(pool.Pool, publisherFunc(func(envID uuid.UUID, version int64) {
+		publishUpdate(ctx, builder, snapshots, streams, logger, envID)
+	}))
+
+	api := httpapi.NewServer(cfg, authSvc, projectSvc, flagSvc, sdkKeySvc, snapshots, builder, streams, logger)
+
+	// Load the configuration snapshots before the API accepts traffic. The
+	// SDK config endpoint reads from memory, so an empty cache would serve
+	// no configuration.
+	loadCtx, cancelLoad := context.WithTimeout(ctx, 30*time.Second)
+	if err := api.ReloadAll(loadCtx); err != nil {
+		cancelLoad()
+		return fmt.Errorf("load configuration snapshots: %w", err)
+	}
+	cancelLoad()
 
 	router := buildRouter(cfg, pool, snapshots, api, logger)
 
@@ -113,11 +133,46 @@ func run() error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
 
+	// Close the SSE streams first so clients reconnect to the replacement
+	// instance rather than holding a half-open connection.
+	streams.Close()
+
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("graceful shutdown: %w", err)
 	}
 	logger.Info("server stopped")
 	return nil
+}
+
+// publisherFunc adapts a function to the featureflag.Publisher interface.
+type publisherFunc func(envID uuid.UUID, version int64)
+
+func (f publisherFunc) Publish(envID uuid.UUID, version int64) {
+	f(envID, version)
+}
+
+// publishUpdate rebuilds an environment's snapshot and notifies its
+// subscribers.
+//
+// It runs after the transaction that produced the change has committed,
+// so the snapshot it installs reflects committed data. The snapshot is
+// rebuilt from the database under the environment lock, which guarantees
+// that its version matches its content.
+func publishUpdate(ctx context.Context, builder *config.Builder, snapshots *config.Store, streams *stream.Manager, logger *slog.Logger, envID uuid.UUID) {
+	snapshot, err := builder.Build(ctx, envID)
+	if err != nil {
+		logger.Error("rebuild snapshot after commit failed", "environment_id", envID, "error", err)
+		// The cache is now known to be out of date. Mark it stale so
+		// readiness reports the degradation, and do not publish a version
+		// the cache cannot serve.
+		snapshots.MarkStale(envID)
+		return
+	}
+
+	// Install the snapshot before publishing, so a client that reacts to
+	// the event by fetching immediately receives the new configuration.
+	snapshots.Set(snapshot)
+	streams.Publish(envID, snapshot.Version)
 }
 
 // buildRouter assembles the HTTP handler.
@@ -163,6 +218,9 @@ func buildRouter(cfg *config.Config, pool *database.Pool, snapshots *config.Stor
 	})
 
 	r.Mount("/api/v1", api.Router())
+	// The SDK endpoints live under their own prefix and authenticate with
+	// a scoped SDK key rather than a dashboard session.
+	r.Mount("/sdk/v1", api.SDKRouter())
 
 	return r
 }

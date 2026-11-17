@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -20,6 +22,7 @@ import (
 	"github.com/featureflag/api/internal/httpapi"
 	"github.com/featureflag/api/internal/project"
 	"github.com/featureflag/api/internal/sdkkey"
+	"github.com/featureflag/api/internal/stream"
 	"github.com/featureflag/api/internal/testsupport"
 )
 
@@ -75,17 +78,40 @@ func newTestEnv(t *testing.T) *testEnv {
 		LoginRateLimitMax:    5,
 		LoginRateLimitWindow: 15 * time.Minute,
 		AllowedOrigins:       []string{"http://localhost:3000"},
+		// A short heartbeat interval keeps the heartbeat test quick.
+		SSEHeartbeatInterval: 2 * time.Second,
+		SSEMaxConnection:     30 * time.Second,
+		SSESubscriberQueue:   16,
+		SSEMaxConnectionsKey: 10,
 	}
 
 	limiter := auth.NewRateLimiter(cfg.LoginRateLimitMax, cfg.LoginRateLimitWindow)
 	authSvc := auth.NewService(pool, auth.DefaultArgon2Params(), cfg.CSRFSecret,
 		cfg.SessionAbsoluteTTL, cfg.SessionIdleTTL, limiter)
 	projectSvc := project.NewService(pool)
-	flagSvc := featureflag.NewService(pool, nil)
 	keySvc := sdkkey.NewService(pool, nil)
 
-	srv := httpapi.NewServer(cfg, authSvc, projectSvc, flagSvc, keySvc, config.NewStore())
-	ts := httptest.NewServer(srv.Router())
+	builder := config.NewBuilder(pool)
+	streams := stream.NewManager(cfg.SSESubscriberQueue, slog.New(slog.NewTextHandler(io.Discard, nil)))
+
+	// The flag service publishes through the same path as the real
+	// server: rebuild the snapshot, install it, then notify subscribers.
+	snapshots := config.NewStore()
+	flagSvc := featureflag.NewService(pool, publisherFunc(func(envID uuid.UUID, version int64) {
+		snapshot, err := builder.Build(context.Background(), envID)
+		if err != nil {
+			return
+		}
+		snapshots.Set(snapshot)
+		streams.Publish(envID, snapshot.Version)
+	}))
+	srv := httpapi.NewServer(cfg, authSvc, projectSvc, flagSvc, keySvc, snapshots, builder, streams, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	// The dashboard API and the SDK API are mounted under separate
+	// prefixes, exactly as they are in the server.
+	mux := http.NewServeMux()
+	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", srv.Router()))
+	mux.Handle("/sdk/v1/", http.StripPrefix("/sdk/v1", srv.SDKRouter()))
+	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
 
 	return &testEnv{server: ts, pool: pool, email: email, password: password}
@@ -96,7 +122,7 @@ func (e *testEnv) login(t *testing.T) (*http.Cookie, string) {
 	t.Helper()
 
 	body := bytes.NewBufferString(`{"email":"` + e.email + `","password":"` + e.password + `"}`)
-	req, err := http.NewRequest(http.MethodPost, e.server.URL+"/auth/login", body)
+	req, err := http.NewRequest(http.MethodPost, e.server.URL+"/api/v1/auth/login", body)
 	if err != nil {
 		t.Fatalf("build login request: %v", err)
 	}
@@ -171,8 +197,8 @@ func TestProtectedRoutesRequireSession(t *testing.T) {
 	e := newTestEnv(t)
 
 	for _, path := range []string{
-		"/projects",
-		"/projects/00000000-0000-0000-0000-000000000000",
+		"/api/v1/projects",
+		"/api/v1/projects/00000000-0000-0000-0000-000000000000",
 	} {
 		resp := e.do(t, http.MethodGet, path, nil, "", nil)
 		resp.Body.Close()
@@ -186,7 +212,7 @@ func TestLoginRejectsWrongPassword(t *testing.T) {
 	e := newTestEnv(t)
 
 	body := bytes.NewBufferString(`{"email":"admin@test.local","password":"wrong"}`)
-	req, _ := http.NewRequest(http.MethodPost, e.server.URL+"/auth/login", body)
+	req, _ := http.NewRequest(http.MethodPost, e.server.URL+"/api/v1/auth/login", body)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := e.server.Client().Do(req)
@@ -215,7 +241,7 @@ func TestMutationRequiresCSRFToken(t *testing.T) {
 	cookie, _ := e.login(t)
 
 	// Without a CSRF token the request must be rejected.
-	resp := e.do(t, http.MethodPost, "/projects", cookie, "", map[string]string{
+	resp := e.do(t, http.MethodPost, "/api/v1/projects", cookie, "", map[string]string{
 		"name": "No CSRF", "slug": "no-csrf",
 	})
 	resp.Body.Close()
@@ -224,7 +250,7 @@ func TestMutationRequiresCSRFToken(t *testing.T) {
 	}
 
 	// With a valid token it must succeed.
-	resp = e.do(t, http.MethodPost, "/projects", cookie, "wrong-token", map[string]string{
+	resp = e.do(t, http.MethodPost, "/api/v1/projects", cookie, "wrong-token", map[string]string{
 		"name": "Bad CSRF", "slug": "bad-csrf",
 	})
 	resp.Body.Close()
@@ -237,7 +263,7 @@ func TestCreateProjectAndEnvironments(t *testing.T) {
 	e := newTestEnv(t)
 	cookie, csrf := e.login(t)
 
-	resp := e.do(t, http.MethodPost, "/projects", cookie, csrf, map[string]string{
+	resp := e.do(t, http.MethodPost, "/api/v1/projects", cookie, csrf, map[string]string{
 		"name": "My App", "slug": "my-app",
 	})
 	defer resp.Body.Close()
@@ -279,13 +305,13 @@ func TestDuplicateSlugReturnsConflict(t *testing.T) {
 	cookie, csrf := e.login(t)
 
 	body := map[string]string{"name": "App", "slug": "duplicate"}
-	resp := e.do(t, http.MethodPost, "/projects", cookie, csrf, body)
+	resp := e.do(t, http.MethodPost, "/api/v1/projects", cookie, csrf, body)
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("first create status = %d, want 201", resp.StatusCode)
 	}
 
-	resp = e.do(t, http.MethodPost, "/projects", cookie, csrf, body)
+	resp = e.do(t, http.MethodPost, "/api/v1/projects", cookie, csrf, body)
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusConflict {
 		t.Errorf("second create status = %d, want 409", resp.StatusCode)
@@ -297,7 +323,7 @@ func TestFlagToggleIsIdempotent(t *testing.T) {
 	cookie, csrf := e.login(t)
 
 	// Create a project.
-	resp := e.do(t, http.MethodPost, "/projects", cookie, csrf, map[string]string{
+	resp := e.do(t, http.MethodPost, "/api/v1/projects", cookie, csrf, map[string]string{
 		"name": "App", "slug": "app",
 	})
 	var created struct {
@@ -320,7 +346,7 @@ func TestFlagToggleIsIdempotent(t *testing.T) {
 	}
 
 	// Create a flag.
-	resp = e.do(t, http.MethodPost, "/projects/"+created.Project.ID.String()+"/flags", cookie, csrf,
+	resp = e.do(t, http.MethodPost, "/api/v1/projects/"+created.Project.ID.String()+"/flags", cookie, csrf,
 		map[string]string{"key": "new_dashboard", "description": "test"})
 	var flagPayload struct {
 		Flag struct {
@@ -330,7 +356,7 @@ func TestFlagToggleIsIdempotent(t *testing.T) {
 	json.NewDecoder(resp.Body).Decode(&flagPayload)
 	resp.Body.Close()
 
-	path := "/flags/" + flagPayload.Flag.ID.String() + "/environments/" + devID.String()
+	path := "/api/v1/flags/" + flagPayload.Flag.ID.String() + "/environments/" + devID.String()
 
 	// First toggle changes the state and bumps the version.
 	resp = e.do(t, http.MethodPut, path, cookie, csrf, map[string]bool{"enabled": true})
@@ -366,7 +392,7 @@ func TestSDKKeyIsShownOnlyOnce(t *testing.T) {
 	e := newTestEnv(t)
 	cookie, csrf := e.login(t)
 
-	resp := e.do(t, http.MethodPost, "/projects", cookie, csrf, map[string]string{
+	resp := e.do(t, http.MethodPost, "/api/v1/projects", cookie, csrf, map[string]string{
 		"name": "App", "slug": "app",
 	})
 	var created struct {
@@ -388,7 +414,7 @@ func TestSDKKeyIsShownOnlyOnce(t *testing.T) {
 		}
 	}
 
-	resp = e.do(t, http.MethodPost, "/sdk-keys", cookie, csrf, map[string]any{
+	resp = e.do(t, http.MethodPost, "/api/v1/sdk-keys", cookie, csrf, map[string]any{
 		"project_id":     created.Project.ID,
 		"environment_id": envID,
 		"name":           "backend",
@@ -408,7 +434,7 @@ func TestSDKKeyIsShownOnlyOnce(t *testing.T) {
 	}
 
 	// The list must not contain the raw key.
-	listPath := "/sdk-keys?project_id=" + created.Project.ID.String() + "&environment=" + envID.String()
+	listPath := "/api/v1/sdk-keys?project_id=" + created.Project.ID.String() + "&environment=" + envID.String()
 	resp = e.do(t, http.MethodGet, listPath, cookie, "", nil)
 	var listPayload struct {
 		Keys []map[string]any `json:"keys"`
@@ -436,4 +462,11 @@ func TestUnknownRouteReturnsJSON404(t *testing.T) {
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("status = %d, want 404", resp.StatusCode)
 	}
+}
+
+// publisherFunc adapts a function to the featureflag.Publisher interface.
+type publisherFunc func(envID uuid.UUID, version int64)
+
+func (f publisherFunc) Publish(envID uuid.UUID, version int64) {
+	f(envID, version)
 }
