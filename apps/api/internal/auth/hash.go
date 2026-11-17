@@ -132,13 +132,29 @@ func VerifySecret(secret, stored string, pepper []byte) bool {
 // crockford is lowercase Crockford base32 without I, L, O, U.
 var crockford = base32.NewEncoding("0123456789abcdefghjkmnpqrstvwxyz").WithPadding(base32.NoPadding)
 
-// randomBase32 returns n random bytes encoded with Crockford base32.
-func randomBase32(n int) (string, error) {
-	b := make([]byte, n)
-	if _, err := rand.Read(b); err != nil {
+// randomBase32Chars returns a string of exactly n characters, each
+// drawn uniformly from the Crockford base32 alphabet.
+//
+// The byte count is derived from the character count so the result has
+// the requested length. Base32 encodes 5 bits per character, so n
+// characters carry 5n bits of entropy.
+func randomBase32Chars(n int) (string, error) {
+	if n <= 0 {
+		return "", errors.New("length must be positive")
+	}
+
+	// bytes needed to hold n characters, rounded up.
+	byteLen := (n*5 + 7) / 8
+	buf := make([]byte, byteLen)
+	if _, err := rand.Read(buf); err != nil {
 		return "", fmt.Errorf("generate random bytes: %w", err)
 	}
-	return crockford.EncodeToString(b), nil
+
+	encoded := crockford.EncodeToString(buf)
+	if len(encoded) < n {
+		return "", fmt.Errorf("generated %d characters, want %d", len(encoded), n)
+	}
+	return encoded[:n], nil
 }
 
 // GenerateSessionToken returns a new opaque session token.
@@ -146,7 +162,7 @@ func randomBase32(n int) (string, error) {
 // The token carries 32 bytes of CSPRNG entropy, which is what protects it
 // offline. Only its hash is stored.
 func GenerateSessionToken() (string, error) {
-	return randomBase32(32)
+	return randomBase32Chars(43)
 }
 
 // HashSessionToken returns the stored digest for a session token.
@@ -156,7 +172,7 @@ func HashSessionToken(token string) string {
 
 // GenerateCSRFToken returns a token bound to a session.
 func GenerateCSRFToken() (string, error) {
-	return randomBase32(24)
+	return randomBase32Chars(32)
 }
 
 // SDKKeyFormat describes the parts of an SDK key.
@@ -179,11 +195,11 @@ func GenerateSDKKey(keyType string) (SDKKeyFormat, error) {
 		return SDKKeyFormat{}, fmt.Errorf("invalid key type %q", keyType)
 	}
 
-	publicID, err := randomBase32(12)
+	publicID, err := randomBase32Chars(12)
 	if err != nil {
 		return SDKKeyFormat{}, err
 	}
-	secret, err := randomBase32(32)
+	secret, err := randomBase32Chars(32)
 	if err != nil {
 		return SDKKeyFormat{}, err
 	}

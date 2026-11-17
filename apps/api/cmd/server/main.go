@@ -17,9 +17,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/featureflag/api/internal/auth"
 	"github.com/featureflag/api/internal/config"
 	"github.com/featureflag/api/internal/database"
+	"github.com/featureflag/api/internal/featureflag"
+	"github.com/featureflag/api/internal/httpapi"
 	"github.com/featureflag/api/internal/middleware"
+	"github.com/featureflag/api/internal/project"
+	"github.com/featureflag/api/internal/sdkkey"
 )
 
 func main() {
@@ -57,7 +62,22 @@ func run() error {
 
 	snapshots := config.NewStore()
 
-	router := buildRouter(cfg, pool, snapshots, logger)
+	// Services.
+	limiter := auth.NewRateLimiter(cfg.LoginRateLimitMax, cfg.LoginRateLimitWindow)
+	authSvc := auth.NewService(pool.Pool, auth.Argon2Params{
+		Time:       cfg.Argon2Time,
+		MemoryKiB:  cfg.Argon2MemoryKiB,
+		Threads:    cfg.Argon2Threads,
+		KeyLength:  cfg.Argon2KeyLength,
+		SaltLength: cfg.Argon2SaltLength,
+	}, cfg.CSRFSecret, cfg.SessionAbsoluteTTL, cfg.SessionIdleTTL, limiter)
+	projectSvc := project.NewService(pool.Pool)
+	flagSvc := featureflag.NewService(pool.Pool, nil)
+	sdkKeySvc := sdkkey.NewService(pool.Pool, cfg.SDKKeyPepper)
+
+	api := httpapi.NewServer(cfg, authSvc, projectSvc, flagSvc, sdkKeySvc, snapshots)
+
+	router := buildRouter(cfg, pool, snapshots, api, logger)
 
 	srv := &http.Server{
 		Addr:              cfg.ListenAddr,
@@ -101,7 +121,7 @@ func run() error {
 }
 
 // buildRouter assembles the HTTP handler.
-func buildRouter(cfg *config.Config, pool *database.Pool, snapshots *config.Store, logger *slog.Logger) http.Handler {
+func buildRouter(cfg *config.Config, pool *database.Pool, snapshots *config.Store, api *httpapi.Server, logger *slog.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestIDMiddleware)
@@ -142,17 +162,7 @@ func buildRouter(cfg *config.Config, pool *database.Pool, snapshots *config.Stor
 		writeJSON(w, http.StatusOK, response)
 	})
 
-	r.Route("/api/v1", func(r chi.Router) {
-		// Dashboard and SDK routes are added as the modules are implemented.
-		r.NotFound(func(w http.ResponseWriter, req *http.Request) {
-			writeJSON(w, http.StatusNotFound, map[string]any{
-				"error": map[string]string{
-					"code":    "not_found",
-					"message": "endpoint not found",
-				},
-			})
-		})
-	})
+	r.Mount("/api/v1", api.Router())
 
 	return r
 }

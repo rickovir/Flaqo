@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -183,5 +184,35 @@ func TestParseSDKKeyRejectsExtraSegments(t *testing.T) {
 	// change which bytes are treated as the secret.
 	if _, _, _, err := ParseSDKKey("ff_client_id_secret_extra"); err == nil {
 		t.Error("ParseSDKKey accepted a key with an extra segment")
+	}
+}
+
+func TestGeneratedKeyMatchesDocumentedFormat(t *testing.T) {
+	// The format is documented in TECHNICAL_SPEC.md section 4.7:
+	// ff_{type}_{public-id}_{secret}, with a 12 character public ID and a
+	// 32 character secret, both in Crockford base32.
+	re := regexp.MustCompile(`^ff_(client|server)_[0-9abcdefghjkmnpqrstvwxyz]{12}_[0-9abcdefghjkmnpqrstvwxyz]{32}$`)
+
+	for _, keyType := range []string{"client", "server"} {
+		k, err := GenerateSDKKey(keyType)
+		if err != nil {
+			t.Fatalf("GenerateSDKKey(%s): %v", keyType, err)
+		}
+		if !re.MatchString(k.Full) {
+			t.Errorf("key %q does not match the documented format", k.Full)
+		}
+		if len(k.Prefix) != 8 {
+			t.Errorf("prefix length = %d, want 8", len(k.Prefix))
+		}
+	}
+}
+
+func TestSessionTokenLength(t *testing.T) {
+	tok, err := GenerateSessionToken()
+	if err != nil {
+		t.Fatalf("GenerateSessionToken: %v", err)
+	}
+	if len(tok) != 43 {
+		t.Errorf("session token length = %d, want 43", len(tok))
 	}
 }

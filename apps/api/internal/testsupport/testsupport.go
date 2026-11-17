@@ -10,6 +10,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -36,8 +38,11 @@ func SkipIfNoDatabase(t *testing.T) string {
 	return dsn
 }
 
-// NewSchema creates an isolated schema containing the full application
-// schema and returns a pool connected to it.
+// NewSchema creates an isolated schema containing the application schema
+// and returns a pool connected to it.
+//
+// The ddl argument is applied in the new schema. It must represent the
+// complete current schema, not just one migration.
 //
 // The returned cleanup function drops the schema.
 func NewSchema(t *testing.T, ddl string) (*pgxpool.Pool, func()) {
@@ -91,6 +96,34 @@ func NewSchema(t *testing.T, ddl string) (*pgxpool.Pool, func()) {
 	}
 
 	return pool, cleanup
+}
+
+// MigrationsDDL reads every up migration and returns them concatenated.
+//
+// Tests need the complete schema, so all migrations are applied, not
+// just the first one.
+func MigrationsDDL(t *testing.T, dir string) string {
+	t.Helper()
+
+	entries, err := filepath.Glob(filepath.Join(dir, "*.up.sql"))
+	if err != nil {
+		t.Fatalf("list migrations: %v", err)
+	}
+	if len(entries) == 0 {
+		t.Fatalf("no migrations found in %s", dir)
+	}
+	sort.Strings(entries)
+
+	var sb strings.Builder
+	for _, path := range entries {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatalf("read migration %s: %v", path, err)
+		}
+		sb.WriteString(string(content))
+		sb.WriteString("\n;\n")
+	}
+	return sb.String()
 }
 
 // SeedUser inserts a user and returns its ID.

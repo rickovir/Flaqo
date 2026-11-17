@@ -3,7 +3,6 @@ package featureflag_test
 import (
 	"context"
 	"errors"
-	"os"
 	"path/filepath"
 	"runtime"
 	"sync"
@@ -18,7 +17,7 @@ import (
 	"github.com/featureflag/api/internal/testsupport"
 )
 
-// loadSchema reads the migration file and returns it as a single DDL
+// loadSchema reads every migration and returns them as a single DDL
 // string suitable for applying inside a test schema.
 func loadSchema(t *testing.T) string {
 	t.Helper()
@@ -28,13 +27,8 @@ func loadSchema(t *testing.T) string {
 		t.Fatal("cannot determine test file path")
 	}
 	// internal/featureflag -> apps/api
-	path := filepath.Join(filepath.Dir(thisFile), "..", "..", "migrations", "000001_init.up.sql")
-
-	ddl, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read migration %s: %v", path, err)
-	}
-	return string(ddl)
+	dir := filepath.Join(filepath.Dir(thisFile), "..", "..", "migrations")
+	return testsupport.MigrationsDDL(t, dir)
 }
 
 // setup creates an isolated schema with the full application schema and

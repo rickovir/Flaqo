@@ -38,8 +38,8 @@ func NewService(pool *pgxpool.Pool, pepper []byte) *Service {
 // Raw is populated only at creation time. It is never retrievable again,
 // because only the hash is stored.
 type CreatedKey struct {
-	Key      domain.SDKKey
-	RawKey   string
+	Key       domain.SDKKey
+	RawKey    string
 	CreatedAt time.Time
 }
 
